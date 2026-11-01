@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -15,11 +14,10 @@ pipeline {
                     powershell '''
                         $ErrorActionPreference = "Stop"
 
-                        $token = $env:DOCKERHUB_PASSWORD.Trim()
-
-                        $token | docker login `
-                            --username $env:DOCKERHUB_USERNAME `
-                            --password-stdin
+                        $env:DOCKERHUB_PASSWORD |
+                            docker login `
+                                --username $env:DOCKERHUB_USERNAME `
+                                --password-stdin
 
                         if ($LASTEXITCODE -ne 0) {
                             throw "Docker Hub login failed."
