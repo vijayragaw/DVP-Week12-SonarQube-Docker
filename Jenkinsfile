@@ -64,10 +64,12 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_PASSWORD'
                     )
                 ]) {
-             powershell '''
-    Write-Host "Docker Hub username: $env:DOCKERHUB_USERNAME"
-    Write-Host "Token length: $($env:DOCKERHUB_PASSWORD.Length)"
-    Write-Host "Token is empty: $([string]::IsNullOrEmpty($env:DOCKERHUB_PASSWORD))"
+      powershell '''
+    $env:DOCKERHUB_PASSWORD | docker login --username $env:DOCKERHUB_USERNAME --password-stdin
+
+    if ($LASTEXITCODE -ne 0) {
+        exit 1
+    }
 '''
                     bat 'docker push %DOCKERHUB_REPO%:%IMAGE_TAG%'
                     bat 'docker push %DOCKERHUB_REPO%:latest'
