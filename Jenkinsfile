@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        // Replace with your Docker Hub username and repository.
+        DOCKERHUB_REPO = 'YOUR_DOCKERHUB_USERNAME/dvp-week12-app'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        CONTAINER_NAME = 'dvp-week12-app'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                bat 'mvn -B clean verify'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    bat 'mvn -B sonar:sonar -Dsonar.projectKey=DVP-Week12 -Dsonar.projectName="DVP Week 12"'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat 'docker build -t %DOCKERHUB_REPO%:%IMAGE_TAG% .'
+                bat 'docker tag %DOCKERHUB_REPO%:%IMAGE_TAG% %DOCKERHUB_REPO%:latest'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                  usernameVariable: 'DOCKERHUB_USERNAME',
+                                                  passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    bat 'echo %DOCKERHUB_PASSWORD% | docker login -u %DOCKERHUB_USERNAME% --password-stdin'
+                    bat 'docker push %DOCKERHUB_REPO%:%IMAGE_TAG%'
+                    bat 'docker push %DOCKERHUB_REPO%:latest'
+                    bat 'docker logout'
+                }
+            }
+        }
+
+        stage('Deploy Locally') {
+            steps {
+                bat 'docker rm -f %CONTAINER_NAME% 2>NUL || exit /b 0'
+                bat 'docker run -d --name %CONTAINER_NAME% --restart unless-stopped -p 8081:8080 %DOCKERHUB_REPO%:%IMAGE_TAG%'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Week 12 CI/CD pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed. Review the stage logs above.'
+        }
+    }
+}
