@@ -35,7 +35,7 @@ pipeline {
       stage('SonarQube Analysis') {
     steps {
         withSonarQubeEnv('SonarQube') {
-            bat 'mvn -B -e -X org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar -Dsonar.projectKey=DVP-Week12 -Dsonar.projectName="DVP Week 12"'
+            bat 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar -Dsonar.projectKey=DVP-Week12 -Dsonar.projectName="DVP Week 12"'
         }
     }
 }
