@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -6,8 +7,8 @@ pipeline {
     }
 
     environment {
-        // Replace with your Docker Hub username and repository.
-        DOCKERHUB_REPO = 'YOUR_DOCKERHUB_USERNAME/dvp-week12-app'
+        // Replace with your actual Docker Hub username.
+        DOCKERHUB_REPO = 'vijayragaw/dvp-week12-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
         CONTAINER_NAME = 'dvp-week12-app'
     }
@@ -25,7 +26,8 @@ pipeline {
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true,
+                          testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -33,7 +35,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    bat 'mvn -B sonar:sonar -Dsonar.projectKey=DVP-Week12 -Dsonar.projectName="DVP Week 12"'
+                    bat 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar -Dsonar.projectKey=DVP-Week12 -Dsonar.projectName="DVP Week 12"'
                 }
             }
         }
@@ -55,9 +57,13 @@ pipeline {
 
         stage('Push to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
-                                                  usernameVariable: 'DOCKERHUB_USERNAME',
-                                                  passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                    )
+                ]) {
                     bat 'echo %DOCKERHUB_PASSWORD% | docker login -u %DOCKERHUB_USERNAME% --password-stdin'
                     bat 'docker push %DOCKERHUB_REPO%:%IMAGE_TAG%'
                     bat 'docker push %DOCKERHUB_REPO%:latest'
