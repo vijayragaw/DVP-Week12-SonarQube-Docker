@@ -11,20 +11,15 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_PASSWORD'
                     )
                 ]) {
-                    powershell '''
-                        $ErrorActionPreference = "Stop"
+                  powershell '''
+    Write-Host "User: [$env:DOCKERHUB_USERNAME]  Pass length: $($env:DOCKERHUB_PASSWORD.Length)"
 
-                        $env:DOCKERHUB_PASSWORD |
-                            docker login `
-                                --username $env:DOCKERHUB_USERNAME `
-                                --password-stdin
+    $env:DOCKERHUB_PASSWORD | docker login --username $env:DOCKERHUB_USERNAME --password-stdin
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker Hub login failed."
-                        }
+    if ($LASTEXITCODE -ne 0) { throw "Docker Hub login failed." }
 
-                        Write-Host "Docker Hub login successful."
-                    '''
+    Write-Host "Docker Hub login successful."
+'''
                 }
             }
         }
